@@ -1,0 +1,14 @@
+>>> from neuron import h
+>>> from model import init_model, calcesI, Stimulation
+>>> v, tvec = init_model()
+Init_model complete
+>>> calcesI(5000,35000)
+calcesI complete
+>>> data = Stimulation(v, 100)
+>>> import matplotlib.pyplot as plt
+>>> plt.plot(tvec, v['node[10]'])
+[<matplotlib.lines.Line2D object at 0x0000023A51170150>]
+>>> plt.show()
+
+
+latet problem: the hard edges of wave give strange artifect
