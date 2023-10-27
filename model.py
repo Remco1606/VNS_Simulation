@@ -10,10 +10,10 @@ h.load_file('interpxyz.hoc')
 dedx = 1 # dedx  gradient in v/m
 
 def init_model():
-    h.load_file('MRGaxon.hoc')
+    h.load_file('MRGaxon.hoc')          # import the MRG model. In this file the paramaters of the neuron can be altered.
 
     for sec in h.allsec():
-        sec.insert('xtra')
+        sec.insert('xtra')              # Insert 'xtra' in de sections. This couples the location of the extracellular stimulation to the potential at the nerve section
 
     h.define_shape()        # crestes cordinates of the nodes in 3D
     h.grindaway()           # in interpxyz.hoc, determines interpolated locations of nodes
@@ -21,13 +21,13 @@ def init_model():
     for sec in h.allsec():
         for seg in sec:
             #seg.xtra._ref_ex = seg._ref_e_extracellular
-            h.setpointer(sec(seg.x)._ref_e_extracellular, 'ex', sec(seg.x).xtra)
+            h.setpointer(sec(seg.x)._ref_e_extracellular, 'ex', sec(seg.x).xtra)        # Pointer so extracellular can call correctly on xtra
 
     v = {}
     for sec in h.allsec():
-        v[str(sec)] = h.Vector().record(sec(0.5)._ref_v)
+        v[str(sec)] = h.Vector().record(sec(0.5)._ref_v)                                # Setup recording vector
         # es[sec] = h.Vector().record(sec(0.5)._ref_e_extracellular)
-    tvec = h.Vector().record(h._ref_t)
+    tvec = h.Vector().record(h._ref_t)                                                  # Setup time vector
 
     print("Init_model complete")
 
@@ -36,8 +36,8 @@ def init_model():
 def calcesI(x, y, sigma_e = 2.76e-07):
     for sec in h.allsec():
         for seg in sec:
-            r = np.sqrt((x - seg.x_xtra)**2 + y**2)  # calculate the distance from electrode to the segment
-            seg.es_xtra = 1e-3/(4*np.pi*sigma_e*r)  #calculate the extracellular portential for unit current
+            r = np.sqrt((x - seg.x_xtra)**2 + y**2)                                     # calculate the distance from electrode to the segment
+            seg.es_xtra = 1e-3/(4*np.pi*sigma_e*r)                                      #calculate the extracellular portential for unit current
     
     print("calcesI complete")
 
@@ -57,7 +57,7 @@ def Stimulation(v, amp, depth = -1,loc_find = 1):
    #else:
    #     h.dt = dt*2
     
-
+    # Create stimulation wave
    i = int((tstop-t0)/dt)
    j = int(Del/dt)
    unit_wave = np.zeros(i)
@@ -67,7 +67,7 @@ def Stimulation(v, amp, depth = -1,loc_find = 1):
 
    n = int((tstop-t0)/dt)
    t = np.linspace(t0, tstop, n) # Vector with time stamp
-   wave = np.multiply(unit_wave, amp)
+   #wave = np.multiply(unit_wave, amp)   #Multiply unit wave with aplitude so wave has correct aplitude
    #wave = butter_lowpass_filter(wave, 10, dt)
 
 ###########################################################################################################################
@@ -77,13 +77,13 @@ def Stimulation(v, amp, depth = -1,loc_find = 1):
 
     # for i in np.logspace(1, depth, (2-depth)):
     # print(i)
-   while abs(amp)<5000:
+   while abs(amp)<5000:                     # While loop that searches for lowest stimulation amplitude for given pulse length
        print('amp = ' + str(amp))
-       wave = np.multiply(unit_wave, amp)
-       setStim(wave, t, dt, tstop) # define stimulation waveform 
-       h.run()
-       recdat = np.array(v['node[10]'])
-       if np.max(recdat) > 0:
+       wave = np.multiply(unit_wave, amp)   #Multiply unit wave with aplitude so wave has correct aplitude
+       setStim(wave, t, dt, tstop)          # define stimulation
+       h.run()                              
+       recdat = np.array(v['node[10]'])     #put results of node 10 in array.
+       if np.max(recdat) > 0:               # Check if a action potential has been generated at node 10
            ex = amp
            amp = (nex + ex)/2
        elif np.max(recdat) <= 0:
@@ -119,7 +119,7 @@ def Stimulation(v, amp, depth = -1,loc_find = 1):
    dat['dt'] = h.dt
  
    
-   if loc_find == 1 and excite == 1:
+   if loc_find == 1 and excite == 1:                # Create data set for all nodes for the given stimualtion amplitude that gives activation
        _ = setStim(unit_wave*ex, t, dt, tstop)
        h.run()
        v, t_ex_lst, loc, t_ex = findExLoc(v)
