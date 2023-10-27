@@ -41,8 +41,8 @@ def calcesI(x, y, sigma_e = 2.76e-07):
     
     print("calcesI complete")
 
-def Stimulation(v, amp, depth = -1,loc_find = 1):
-   Dur = 0.5 # duration
+def Stimulation(v, Dur, amp = -10, depth = -1,loc_find = 1):
+   #Dur = 0.5 # duration
    dt = Dur/1e3
    Del = 1 # delay until start stimulation
 
@@ -131,6 +131,23 @@ def Stimulation(v, amp, depth = -1,loc_find = 1):
        dat['t_ex'] = t_ex_lst
     
    return dat
+
+def SD_Curve(v):
+    data = {}
+    SD_Data = {}
+    SD_Threshold = []
+    SD_Duration = []
+    i = 0.1
+    m = 0
+    while i < 4:
+        data = Stimulation(v, Dur=i)
+        SD_Threshold.append(data['th'])
+        SD_Duration.append(i)
+        i = i+0.2
+        m = m+1
+    SD_Data['SD_Threshold'] = SD_Threshold
+    SD_Data['SD_Duration'] = SD_Duration
+    return SD_Data
 
 
 def findExLoc(rec): 
