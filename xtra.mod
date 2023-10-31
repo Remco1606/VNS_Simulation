@@ -3,14 +3,15 @@
 
 NEURON {
 	SUFFIX xtra
-	RANGE es : (es = max amplitude of the potential)		
+	RANGE es1, es2 : (es = max amplitude of the potential)		
 	RANGE x, y, z, type, order
-	GLOBAL stim : (stim = normalized waveform)
+	GLOBAL stim : (stim = active electrode, amp = stimulation amplitude)
 	POINTER ex 
 }
 
 PARAMETER {	
-	es = 0 (mV)
+	es1 = 0 (mV)
+	es2 = 0 (mV)
 	x = 0 (1) : spatial coords
 	y = 0 (1)
 	z = 0 (1)		
@@ -26,11 +27,25 @@ ASSIGNED {
 }
 
 INITIAL {
-	ex = stim*es	
+	if (stim == 1){
+		ex = 1*es2
+	}
+	else if (stim == 2){
+		ex = 1*es2
+	} else{
+		ex = 0
+	}	
 }
 
 
 BEFORE BREAKPOINT { : before each cy' = f(y,t) setup
-  ex = stim*es
+  if (stim == 1){
+		ex = 1*es2
+	}
+	else if (stim == 2){
+		ex = 1*es2
+	} else{
+		ex = 0
+	}
 }
 

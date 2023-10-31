@@ -39,18 +39,20 @@
  
 #define t nrn_threads->_t
 #define dt nrn_threads->_dt
-#define es _p[0]
-#define es_columnindex 0
-#define x _p[1]
-#define x_columnindex 1
-#define y _p[2]
-#define y_columnindex 2
-#define z _p[3]
-#define z_columnindex 3
-#define type _p[4]
-#define type_columnindex 4
-#define order _p[5]
-#define order_columnindex 5
+#define es1 _p[0]
+#define es1_columnindex 0
+#define es2 _p[1]
+#define es2_columnindex 1
+#define x _p[2]
+#define x_columnindex 2
+#define y _p[3]
+#define y_columnindex 3
+#define z _p[4]
+#define z_columnindex 4
+#define type _p[5]
+#define type_columnindex 5
+#define order _p[6]
+#define order_columnindex 6
 #define ex	*_ppvar[0].get<double*>()
 #define _p_ex _ppvar[0].literal_value<void*>()
 #define area	*_ppvar[1].get<double*>()
@@ -102,7 +104,8 @@ static void register_nmodl_text_and_filename(int mechtype);
 };
  static HocParmUnits _hoc_parm_units[] = {
  {"stim_xtra", "unitless"},
- {"es_xtra", "mV"},
+ {"es1_xtra", "mV"},
+ {"es2_xtra", "mV"},
  {"x_xtra", "1"},
  {"y_xtra", "1"},
  {"z_xtra", "1"},
@@ -129,7 +132,8 @@ static void nrn_state(NrnThread*, Memb_list*, int);
  static const char *_mechanism[] = {
  "7.7.0",
 "xtra",
- "es_xtra",
+ "es1_xtra",
+ "es2_xtra",
  "x_xtra",
  "y_xtra",
  "z_xtra",
@@ -147,16 +151,17 @@ extern Prop* need_memb(Symbol*);
 static void nrn_alloc(Prop* _prop) {
 	Prop *prop_ion;
 	double *_p; Datum *_ppvar;
- 	_p = nrn_prop_data_alloc(_mechtype, 6, _prop);
+ 	_p = nrn_prop_data_alloc(_mechtype, 7, _prop);
  	/*initialize range parameters*/
- 	es = 0;
+ 	es1 = 0;
+ 	es2 = 0;
  	x = 0;
  	y = 0;
  	z = 0;
  	type = 0;
  	order = 0;
  	_prop->param = _p;
- 	_prop->param_size = 6;
+ 	_prop->param_size = 7;
  	_ppvar = nrn_prop_datum_alloc(_mechtype, 2, _prop);
  	_prop->dparam = _ppvar;
  	/*connect ionic variables to this model*/
@@ -179,7 +184,7 @@ extern void _cvode_abstol( Symbol**, double*, int);
  #if NMODL_TEXT
   register_nmodl_text_and_filename(_mechtype);
 #endif
-  hoc_register_prop_size(_mechtype, 6, 2);
+  hoc_register_prop_size(_mechtype, 7, 2);
   hoc_register_dparam_semantics(_mechtype, 0, "pointer");
   hoc_register_dparam_semantics(_mechtype, 1, "area");
  	hoc_reg_ba(_mechtype, _ba1, 11);
@@ -199,14 +204,30 @@ static void _modl_cleanup(){ _match_recurse=1;}
  static void _ba1(Node*_nd, double* _pp, Datum* _ppd, Datum* _thread, NrnThread* _nt)  {
     _p = _pp; _ppvar = _ppd;
   v = NODEV(_nd);
- ex = stim * es ;
+ if ( stim  == 1.0 ) {
+     ex = 1.0 * es2 ;
+     }
+   else if ( stim  == 2.0 ) {
+     ex = 1.0 * es2 ;
+     }
+   else {
+     ex = 0.0 ;
+     }
    }
 
 static void initmodel() {
   int _i; double _save;_ninits++;
 {
  {
-   ex = stim * es ;
+   if ( stim  == 1.0 ) {
+     ex = 1.0 * es2 ;
+     }
+   else if ( stim  == 2.0 ) {
+     ex = 1.0 * es2 ;
+     }
+   else {
+     ex = 0.0 ;
+     }
    }
 
 }
@@ -278,14 +299,15 @@ static void register_nmodl_text_and_filename(int mech_type) {
   "\n"
   "NEURON {\n"
   "	SUFFIX xtra\n"
-  "	RANGE es : (es = max amplitude of the potential)		\n"
+  "	RANGE es1, es2 : (es = max amplitude of the potential)		\n"
   "	RANGE x, y, z, type, order\n"
-  "	GLOBAL stim : (stim = normalized waveform)\n"
+  "	GLOBAL stim : (stim = active electrode, amp = stimulation amplitude)\n"
   "	POINTER ex \n"
   "}\n"
   "\n"
   "PARAMETER {	\n"
-  "	es = 0 (mV)\n"
+  "	es1 = 0 (mV)\n"
+  "	es2 = 0 (mV)\n"
   "	x = 0 (1) : spatial coords\n"
   "	y = 0 (1)\n"
   "	z = 0 (1)		\n"
@@ -301,12 +323,26 @@ static void register_nmodl_text_and_filename(int mech_type) {
   "}\n"
   "\n"
   "INITIAL {\n"
-  "	ex = stim*es	\n"
+  "	if (stim == 1){\n"
+  "		ex = 1*es2\n"
+  "	}\n"
+  "	else if (stim == 2){\n"
+  "		ex = 1*es2\n"
+  "	} else{\n"
+  "		ex = 0\n"
+  "	}	\n"
   "}\n"
   "\n"
   "\n"
   "BEFORE BREAKPOINT { : before each cy' = f(y,t) setup\n"
-  "  ex = stim*es\n"
+  "  if (stim == 1){\n"
+  "		ex = 1*es2\n"
+  "	}\n"
+  "	else if (stim == 2){\n"
+  "		ex = 1*es2\n"
+  "	} else{\n"
+  "		ex = 0\n"
+  "	}\n"
   "}\n"
   "\n"
   ;
