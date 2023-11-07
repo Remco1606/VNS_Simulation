@@ -5,7 +5,7 @@ from scipy.signal import butter, lfilter, freqz
 h.load_file('stdgui.hoc')
 h.load_file('interpxyz.hoc')
 
-# units are mv and mA
+# units are mv and uA
 
 dedx = 1 # dedx  gradient in v/m
 
@@ -33,15 +33,17 @@ def init_model():
 
     return v, tvec
 
-def calcesI(x, y, sigma_e = 2.76e-07):
+def calcesI(x, y, sigma_e = 2.76e-07, sigma_t = (1/1200), sigma_l = (1/300)):           # sigma[ohm/cm]
     for sec in h.allsec():
         for seg in sec:
-            r = np.sqrt((x - seg.x_xtra)**2 + y**2)                                     # calculate the distance from electrode to the segment
-            seg.es_xtra = 1e-3/(4*np.pi*sigma_e*r)                                      #calculate the extracellular portential for unit current
+            #r = np.sqrt((x - seg.x_xtra)**2 + y**2)                                     # calculate the distance from electrode to the segment
+            #seg.es_xtra = 1e-3/(4*np.pi*sigma_e*r)                                      #calculate the extracellular portential for unit current
+            # The unit of current is mA so mV is in mV. However uA is used for the amplitude becuase otherwise the input values are to low therefore it is multiplied with 1e-3 so Ve is in mV
+            seg.es_xtra = 1e-3/(4*np.pi*(np.sqrt((sigma_l*sigma_t)*(y/10000)**2 + sigma_t**2*((x - seg.x_xtra)/10000)**2)))       # Calculation of Ve according to Grill 1999 es[mV] I[mA]
     
     print("calcesI complete")
 
-def Stimulation(v, Dur, amp = -10, depth = -1,loc_find = 1):
+def Stimulation(v, Dur, amp = -1, depth = -1,loc_find = 1): # Dur[ms] amp[uA]
    #Dur = 0.5 # duration
    dt = Dur/1e3
    Del = 1 # delay until start stimulation
@@ -77,7 +79,7 @@ def Stimulation(v, Dur, amp = -10, depth = -1,loc_find = 1):
 
     # for i in np.logspace(1, depth, (2-depth)):
     # print(i)
-   while abs(amp)<5000:                     # While loop that searches for lowest stimulation amplitude for given pulse length
+   while abs(amp)<500000:                     # While loop that searches for lowest stimulation amplitude for given pulse length
        print('amp = ' + str(amp))
        wave = np.multiply(unit_wave, amp)   #Multiply unit wave with aplitude so wave has correct aplitude
        setStim(wave, t, dt, tstop)          # define stimulation
@@ -139,12 +141,16 @@ def SD_Curve(v):
     SD_Duration = []
     i = 0.1
     m = 0
-    while i < 4:
-        data = Stimulation(v, Dur=i)
+    Amp = -1
+    while i < 2:
+        data = Stimulation(v, Dur=i, amp = Amp)
         SD_Threshold.append(data['th'])
         SD_Duration.append(i)
-        i = i+0.2
+        i = i+0.1
         m = m+1
+        if data['th'] != 0:
+            Amp = round(data['th'])
+        
     SD_Data['SD_Threshold'] = SD_Threshold
     SD_Data['SD_Duration'] = SD_Duration
     return SD_Data
@@ -158,7 +164,6 @@ def findExLoc(rec):
         v[vec] = rec[vec].to_python()
         if np.where(np.diff(np.sign(v[vec])))[0].size != 0:
             t.append(np.where(np.diff(np.sign(v[vec])))[0][0])
-    print('c')
     t_ex = min(t)
     for vec in rec:
         if np.where(np.diff(np.sign(v[vec])))[0].size != 0:
@@ -202,6 +207,6 @@ def setStim(data, t, dt, tstop): #Dur, Del, amp, w, dt, t0, tstop, tau, sigma, b
 
 def attach_stim():
     # # now drive h.is_xtra
-    stim_amp.play(h._ref_stim_xtra, stim_time, 1)
+    stim_amp.play(h._ref_stim_xtra, stim_time, 1)  #run stim_apm into "stim" in xtra.mod with time vector
   
 
